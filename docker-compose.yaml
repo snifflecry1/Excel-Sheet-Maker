@@ -14,3 +14,28 @@ services:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+  spreadsheet_backend:
+    build:
+      context: ./spreadsheet_backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./spreadsheet_backend:/app
+  db:
+    image: postgres:17.4-bookworm
+    volumes:
+      - type: volume
+        source: db_data
+        target: /var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:7.0.12-alpine
+    ports:
+      - "6379:6379"
+volumes:
+  db_data:

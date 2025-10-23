@@ -1,0 +1,236 @@
+openapi: 3.0.4
+info:
+  title: Swagger spreadsheetmaker - OpenAPI 3.0
+  termsOfService: https://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.12
+externalDocs:
+  description: Find out more about Swagger
+  url: https://swagger.io
+servers:
+  - url: https://spreadsheet.swagger.io/api/v3
+tags:
+  - name: spreadsheet
+    description: spreadsheet for user
+  - name: cell
+    description: Access to cells of a spreadsheet
+paths:
+  /spreadsheet:
+    post:
+      tags:
+        - spreadsheet
+      summary: Creates spreadsheet with a given name
+      description: Creates spreadsheet with a given name
+      operationId: createSheet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpreadsheetCreate'
+      responses:
+        '201':
+          description: Successful created spreadsheet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Spreadsheet'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /spreadsheet/{id}:
+    get:
+      tags:
+        - spreadsheet
+      summary: Get sheet by id.
+      description: Get sheet by id.
+      operationId: getSheet
+      parameters:
+        - name: id
+          in: path
+          description: The id of the sheet that is being opened
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Spreadsheet'
+        '404':
+          description: Sheet not found
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /export/spreadsheet/{sheetId}:
+    get:
+      tags:
+        - spreadsheet
+      summary: Export a spreadsheet to CSV
+      description: >
+        Exports the specified spreadsheet as a downloadable CSV file.
+      operationId: exportSpreadsheetCSV
+      parameters:
+        - name: sheetId
+          in: path
+          description: The ID of the spreadsheet to export.
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: CSV file download
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Spreadsheet not found
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /spreadsheet/{sheetId}/cells/{cellId}:
+    post:
+      tags:
+        - cell
+      summary: Queue a cell update
+      description: >
+        Enqueues an update for a specific cell in a spreadsheet.
+        The update is processed asynchronously by background workers.
+      operationId: updateCell
+      parameters:
+        - name: sheetId
+          in: path
+          description: The ID of the spreadsheet containing the cell.
+          required: true
+          schema:
+            type: integer
+        - name: cellId
+          in: path
+          description: The ID of the cell to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: Cell fields to update.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CellPatch'
+      responses:
+        "202":
+          description: Cell update request accepted and queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task_id:
+                    type: string
+                    example: "b51c404a-d7d7-4d82-8c63-94b07f221f98"
+                  status:
+                    type: string
+                    example: queued
+                  message:
+                    type: string
+                    example: Update accepted for background processing
+        "400":
+          description: Invalid cell update payload
+        "404":
+          description: Spreadsheet or cell not found
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Cell:
+      type: object
+      properties:
+        value:
+          type: string
+          example: "abc45"
+        formula:
+          type: string
+          example: "=A1+B2"
+      xml:
+        name: Cell
+    CellPatch:
+      allOf:
+        - $ref: '#/components/schemas/Cell'
+      description: >
+        Partial cell update. Only include the fields you want to change.
+      example:
+        value: "42"
+    Spreadsheet:
+      required:
+        - name
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        name:
+          type: string
+          example: Balance_sheet
+        cells:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: "#/components/schemas/Cell"
+      xml:
+        name: spreadsheet
+    SpreadsheetCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Balance_sheet
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+  requestBodies:
+    SpreadsheetCreateBody:
+      description: Spreadsheet object that needs to be created
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Spreadsheet'
+        application/xml:
+          schema:
+            $ref: '#/components/schemas/Spreadsheet'
+    CellUpdate:
+      description: Cell object in an existing spreadsheet that needs to be updated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CellPatch'
+    
