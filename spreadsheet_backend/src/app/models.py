@@ -8,7 +8,6 @@ class Cell:
 
 @dataclass
 class Spreadsheet:
-    id: int
     name: str
     cells: List[List[Cell]]
     rows: int

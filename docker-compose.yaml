@@ -21,6 +21,9 @@ services:
       - "5000:5000"
     volumes:
       - ./spreadsheet_backend:/app
+    environment:
+      - FLASK_APP=src/main.py
+      - FLASK_ENV=development
   db:
     image: postgres:17.4-bookworm
     volumes:
