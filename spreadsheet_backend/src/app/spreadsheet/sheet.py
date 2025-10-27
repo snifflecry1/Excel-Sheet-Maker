@@ -1,12 +1,40 @@
+from typing import List
+from dataclasses import dataclass
+from app.models import SpreadsheetModel, SpreadsheetCell
+from app import db
+from sqlalchemy.orm import Session
+
+@dataclass
 class Spreadsheet:
-    def __init__(self, name: str, rows: int, cols: int):
-        self.name = name
-        self.rows = rows
-        self.cols = cols
-        self.cells = [[ '' for _ in range(self.cols)] for _ in range(self.rows)]
+    id: int
+    name: str
+    db: Session
+    rows: int = 40
+    cols: int  = 40
     
-    def set_cell(self, row: int, col: int, value: str):
-        self.cells[row][col] = value
+    
+    @classmethod
+    def from_db(cls, db, sheet_id: int) -> "Spreadsheet":
+        meta = db.query(SpreadsheetModel).get(sheet_id)
+        if not meta:
+            raise ValueError(f"Spreadsheet with id {sheet_id} not found")
+        return cls(id=meta.id, name=meta.name, db=db)
+    
+    def get_cells(self, limit: int = 1000) -> List[SpreadsheetCell]:
+        return (
+            self.db.query(SpreadsheetCell)
+            .filter_by(id = self.id)
+            .order_by(SpreadsheetCell.row_index, SpreadsheetCell.col_index)
+            .limit(limit)
+            .all()
+        )
+    
+    # def queue_update(self, update, redis_client):
+    #     implement later
+
+    # def export_to_csv(self, path):
+    #     implement later
+        
     
 
         

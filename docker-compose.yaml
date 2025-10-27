@@ -24,6 +24,10 @@ services:
     environment:
       - FLASK_APP=src/main.py
       - FLASK_ENV=development
+    depends_on:
+      - db
+    networks:
+      - app_network
   db:
     image: postgres:17.4-bookworm
     volumes:
@@ -34,6 +38,13 @@ services:
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
       POSTGRES_DB: test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
     ports:
       - "5432:5432"
   redis:
@@ -42,3 +53,7 @@ services:
       - "6379:6379"
 volumes:
   db_data:
+
+networks:
+  app_network:
+    driver: bridge
