@@ -1,6 +1,11 @@
-from app import create_app
+import os
+os.environ["EVENTLET_NO_GREENDNS"] = 'yes'
+import eventlet
+eventlet.monkey_patch()
 
-app = create_app()
+from app import create_app, socket
+
+flask_app, socket = create_app()
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socket.run(flask_app, host="0.0.0.0", port=5000, debug=True)

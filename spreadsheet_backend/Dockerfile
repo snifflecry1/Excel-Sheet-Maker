@@ -1,4 +1,6 @@
-FROM python:3.13-slim as builder 
+FROM python:3.11-slim as builder 
+
+ENV EVENTLET_NO_GREENDNS=yes
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -10,9 +12,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install --prefix=/install -r requirements.txt
 
-FROM python:3.13-slim
+FROM python:3.11-slim
 COPY --from=builder /install /usr/local
 WORKDIR /app
 COPY . .
 
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000", "--reload"]
+CMD ["python", "src.main.py"]

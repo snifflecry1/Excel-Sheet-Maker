@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   spreadsheet_client:
     build: 
@@ -17,6 +15,7 @@ services:
   spreadsheet_backend:
     build:
       context: ./spreadsheet_backend
+    command: python src/main.py
     ports:
       - "5000:5000"
     volumes:
@@ -24,8 +23,14 @@ services:
     environment:
       - FLASK_APP=src/main.py
       - FLASK_ENV=development
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - EVENTLET_NO_GREENDNS=yes
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app_network
   db:
@@ -51,6 +56,8 @@ services:
     image: redis:7.0.12-alpine
     ports:
       - "6379:6379"
+    networks:
+      - app_network
 volumes:
   db_data:
 
