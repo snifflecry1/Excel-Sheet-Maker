@@ -15,7 +15,8 @@ services:
   spreadsheet_backend:
     build:
       context: ./spreadsheet_backend
-    command: python src/main.py
+    command: >
+      bash -c "flask db upgrade && python src/main.py"
     ports:
       - "5000:5000"
     volumes:
@@ -26,6 +27,7 @@ services:
       - PYTHONPATH=/app/src
       - REDIS_URL=redis://redis:6379
       - EVENTLET_NO_GREENDNS=yes
+      - DATABASE_URL=postgresql://test:test@db:5432/test
     depends_on:
       db:
         condition: service_healthy

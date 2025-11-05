@@ -1,6 +1,5 @@
 from typing import List, Optional
 from app.extensions import db
-#Model, Column, Integer, DateTime, String, relationship, ForeignKey, Text
 from datetime import datetime, timezone
 
 class SpreadsheetModel(db.Model):

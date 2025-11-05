@@ -4,21 +4,25 @@ from app.extensions import db, migrate
 from app.views import main_bp
 import logging
 import os
+from app.db_client.client import DBClient
+from app.redis_client.red_client import RedisClient
 
-redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
 
 logging.basicConfig(level=logging.DEBUG)
+
 socket = SocketIO(cors_allowed_origins="*")
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object('config.DevConfig')
-
-    app.logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
+    app.logger.info("Initializing Flask app")
     db.init_app(app)
     migrate.init_app(app, db)
-    socket.init_app(app, message_queue="redis://redis:6379/0")
-
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    socket.init_app(app, message_queue=f"{redis_url}/0")
+    app.db_client = DBClient(db.session)
+    app.redis_client = RedisClient()
     app.register_blueprint(main_bp)
     from app import sockets 
+    app.logger.info("App created successfully.")
     return app, socket

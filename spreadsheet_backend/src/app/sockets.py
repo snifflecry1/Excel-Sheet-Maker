@@ -1,13 +1,11 @@
 import json
 from flask_socketio import emit
 from app import socket
-import redis
+from flask import current_app
 import logging
 
 logger = logging.getLogger(__name__)
 redis_client = None
-
-r = redis.Redis(host="redis", port=6379, decode_responses=True)
 
 @socket.on("connect")
 def handle_connect():
@@ -18,7 +16,7 @@ def handle_connect():
 def handle_disconnect():
     logger.info("Client disconnected")
 
-@socket.on("cell_update")
+@socket.on("sheet_updates")
 def updates(data):
     try:
         spreadsheet_id = data.get('spreadsheet_id')
@@ -26,9 +24,12 @@ def updates(data):
         if not spreadsheet_id or not update:
             emit("error", {"error": "Invalid payload"})
             return
-        payload = json.dumps({"spreadsheet_id": spreadsheet_id, "update": update})
-        r.publish('cell_updates', payload)
-        emit("update_ack", {"status": "Update published", "spreadsheet_id": spreadsheet_id})
+        payload ={
+            "spreadsheet_id": spreadsheet_id,
+            "update": json.dumps(update)
+        }
+        current_app.redis_client.publish_update('sheet_updates', payload)
+        emit("update_ack", {"status": "Update added to stream", "spreadsheet_id": spreadsheet_id})
         logger.info(f"Published update to Redis: {payload}")
     except Exception as e:
         logger.exception("Error handling cell_update")
