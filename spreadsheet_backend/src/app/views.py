@@ -27,7 +27,11 @@ def create_spreadsheet():
 def get_spreadsheet_cells(id):
     if id <= 0:
         return jsonify({"error": "Invalid spreadsheet ID"}), 400
+    cached_sheet = current_app.redis_client.get_cached_sheet_state(id)
+    if cached_sheet is not None:
+        return jsonify({"spreadsheet_id": id, "cells": cached_sheet}), 200
     result = current_app.db_client.get_spreadsheet_cells(id)
+    current_app.redis_client.cache_sheet_state(id, result["data"]["cells"])
     if result["success"]:
         return jsonify(result["data"]), 200
     else:

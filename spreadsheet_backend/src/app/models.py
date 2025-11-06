@@ -17,7 +17,12 @@ class SpreadsheetModel(db.Model):
 class SpreadsheetCell(db.Model):
     __tablename__ = "cells"
 
-    id = db.Column(db.Integer, db.ForeignKey("spreadsheets.id"), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    spreadsheet_id = db.Column(
+        db.Integer,
+        db.ForeignKey("spreadsheets.id", ondelete="CASCADE"),
+        nullable=False
+    )
     row_index = db.Column(db.Integer, primary_key=True)
     col_index = db.Column(db.Integer, primary_key=True)
     value = db.Column(db.Text, nullable=True)

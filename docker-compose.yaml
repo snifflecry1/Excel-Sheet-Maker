@@ -16,13 +16,13 @@ services:
     build:
       context: ./spreadsheet_backend
     command: >
-      bash -c "flask db upgrade && python src/main.py"
+      bash -c "./migration_setup.sh && python src/main.py"
     ports:
       - "5000:5000"
     volumes:
       - ./spreadsheet_backend:/app
     environment:
-      - FLASK_APP=src/main.py
+      - FLASK_APP=src.main.py
       - FLASK_ENV=development
       - PYTHONPATH=/app/src
       - REDIS_URL=redis://redis:6379
@@ -58,6 +58,28 @@ services:
     image: redis:7.0.12-alpine
     ports:
       - "6379:6379"
+    networks:
+      - app_network
+  celery_worker:
+    user: "1000:1000"
+    build:
+      context: ./spreadsheet_backend
+    command: >
+      celery -A app.celery.celery.celery_app worker --loglevel=info
+    volumes:
+      - ./spreadsheet_backend:/app
+    environment:
+      - FLASK_APP=src/main.py
+      - FLASK_ENV=development
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - EVENTLET_NO_GREENDNS=yes
+      - DATABASE_URL=postgresql://test:test@db:5432/test
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
     networks:
       - app_network
 volumes:

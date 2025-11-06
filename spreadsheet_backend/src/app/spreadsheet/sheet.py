@@ -29,8 +29,17 @@ class Spreadsheet:
             .all()
         )
     
-    # def queue_update(self, update, redis_client):
-    #     implement later
+    def update_cell_value(self, row_index: int, col_index: int, value: str) -> bool:
+        cell = (
+            self.db.query(SpreadsheetCell)
+            .filter_by(spreadsheet_id=self.id, row_index=row_index, col_index=col_index)
+            .first()
+        )
+        if not cell:
+            return False
+        cell.value = value
+        return True
+    
 
     # def export_to_csv(self, path):
     #     implement later

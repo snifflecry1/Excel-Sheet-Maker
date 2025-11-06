@@ -11,10 +11,12 @@ WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install --prefix=/install -r requirements.txt
-
 FROM python:3.11-slim
 COPY --from=builder /install /usr/local
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
 WORKDIR /app
 COPY . .
+USER appuser
 
 CMD ["python", "src.main.py"]

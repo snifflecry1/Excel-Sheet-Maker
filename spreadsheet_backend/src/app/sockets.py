@@ -24,13 +24,17 @@ def updates(data):
         if not spreadsheet_id or not update:
             emit("error", {"error": "Invalid payload"})
             return
-        payload ={
-            "spreadsheet_id": spreadsheet_id,
-            "update": json.dumps(update)
-        }
-        current_app.redis_client.publish_update('sheet_updates', payload)
-        emit("update_ack", {"status": "Update added to stream", "spreadsheet_id": spreadsheet_id})
-        logger.info(f"Published update to Redis: {payload}")
+        current_app.redis_client.update_cached_cell(
+            spreadsheet_id,
+            update.get('row'),
+            update.get('col'),
+            update.get('value')
+        )
+        logger.info(f"Updated cached cell for spreadsheet {spreadsheet_id}")
+        current_app.redis_client.publish_update_task(spreadsheet_id, update.get('row'), update.get('col'), update.get('value'))
+        logger.info(f"Added db update task for spreadsheet {spreadsheet_id}")
+        emit("update_ack", {"status": "Update added to task queue", "spreadsheet_id": spreadsheet_id})
+        logger.info(f"Published both updates to Redis")
     except Exception as e:
-        logger.exception("Error handling cell_update")
+        logger.exception(f"Error handling cell_update: {e}")
         emit("error", {"error": "Internal server error"})

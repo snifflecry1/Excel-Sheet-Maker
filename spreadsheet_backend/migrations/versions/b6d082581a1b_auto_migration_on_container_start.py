@@ -1,8 +1,8 @@
-"""Create spreadsheets table
+"""Auto migration on container start
 
-Revision ID: 114f15285187
+Revision ID: b6d082581a1b
 Revises: 
-Create Date: 2025-10-27 16:53:32.575940
+Create Date: 2025-11-06 16:21:38.980242
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '114f15285187'
+revision = 'b6d082581a1b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,12 +25,13 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('cells',
-    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('spreadsheet_id', sa.Integer(), nullable=False),
     sa.Column('row_index', sa.Integer(), nullable=False),
     sa.Column('col_index', sa.Integer(), nullable=False),
     sa.Column('value', sa.Text(), nullable=True),
     sa.Column('formula', sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(['id'], ['spreadsheets.id'], ),
+    sa.ForeignKeyConstraint(['spreadsheet_id'], ['spreadsheets.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', 'row_index', 'col_index')
     )
     # ### end Alembic commands ###

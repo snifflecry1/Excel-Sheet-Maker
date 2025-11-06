@@ -59,3 +59,27 @@ class DBClient:
             logger.exception(f"Database error retrieving cells: {e}")
             response["error_type"] = ErrorCodes.ALCHEMY_ERROR
         return response
+    
+    def update_cell(self, spreadsheet_id, row_index, col_index, value) -> dict:
+        response = {"success": False, "error_type": None}
+        try:
+            spreadsheet = Spreadsheet.from_db(self.session, spreadsheet_id)
+            updated = spreadsheet.update_cell_value(row_index, col_index, value)
+            if not updated:
+                response["error_type"] = ErrorCodes.DOES_NOT_EXIST
+                return response
+            self.session.commit()
+            response["success"] = True
+        except ValueError as e:
+            logger.exception("Spreadsheet not found for update")
+            response["error_type"] = ErrorCodes.DOES_NOT_EXIST
+        except SQLAlchemyError as e:
+            logger.exception(f"Database error updating cell: {e}")
+            self.session.rollback()
+            response["error_type"] = ErrorCodes.ALCHEMY_ERROR
+        except Exception as e:
+            logger.exception("Unexpected error updating cell")
+            self.session.rollback()
+            response["error_type"] = ErrorCodes.GENERIC_ERROR
+        return response
+    

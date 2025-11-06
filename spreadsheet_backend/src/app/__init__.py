@@ -4,7 +4,7 @@ from app.extensions import db, migrate
 from app.views import main_bp
 import logging
 import os
-from app.db_client.client import DBClient
+from app.db_client.db_client import DBClient
 from app.redis_client.red_client import RedisClient
 
 
