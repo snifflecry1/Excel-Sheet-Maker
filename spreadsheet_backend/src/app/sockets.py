@@ -2,6 +2,7 @@ import json
 from flask_socketio import emit
 from app import socket
 from flask import current_app
+from app.celery.tasks import update_cell_task
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,21 @@ def updates(data):
             spreadsheet_id,
             update.get('row'),
             update.get('col'),
-            update.get('value')
+            update.get('value'),
+            update.get('formula')
         )
-        logger.info(f"Updated cached cell for spreadsheet {spreadsheet_id}")
-        current_app.redis_client.publish_update_task(spreadsheet_id, update.get('row'), update.get('col'), update.get('value'))
+        try:
+            update_cell_task.delay( # type: ignore
+                spreadsheet_id,
+                update.get('row'),
+                update.get('col'), 
+                update.get('value'),
+                update.get('formula'),
+                update.get('references')
+            )
+        except AttributeError as e:
+            logger.error(f"Failed to publish update task: {e}")
+            return None
         logger.info(f"Added db update task for spreadsheet {spreadsheet_id}")
         emit("update_ack", {"status": "Update added to task queue", "spreadsheet_id": spreadsheet_id})
         logger.info(f"Published both updates to Redis")

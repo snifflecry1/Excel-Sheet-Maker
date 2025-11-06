@@ -83,3 +83,20 @@ class DBClient:
             response["error_type"] = ErrorCodes.GENERIC_ERROR
         return response
     
+    def get_cell(self, spreadsheet_id, row_index, col_index) -> dict:
+        response = {"success": False, "error_type": None, "data": None}
+        try:
+            cell_data = (
+                self.session.query(SpreadsheetCell)
+                .filter_by(spreadsheet_id=spreadsheet_id, row_index=row_index, col_index=col_index)
+                .first()
+            )
+            if cell_data is None:
+                response["error_type"] = ErrorCodes.DOES_NOT_EXIST
+                return response
+            response["success"] = True
+            response["data"] = cell_data
+        except SQLAlchemyError as e:
+            logger.exception(f"Database error retrieving cell: {e}")
+            response["error_type"] = ErrorCodes.ALCHEMY_ERROR
+        return response

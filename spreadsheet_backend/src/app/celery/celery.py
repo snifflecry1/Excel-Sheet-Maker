@@ -8,7 +8,7 @@ def make_celery():
         'spreadsheet_tasks',
         broker=redis_url,
         backend=redis_url,
-        include=['app.celery.tasks']  # adjust path to your tasks file
+        include=['app.celery.tasks'] 
     ) # type: ignore
 
     celery.conf.update(

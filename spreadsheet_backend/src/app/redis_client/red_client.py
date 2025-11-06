@@ -1,7 +1,6 @@
 import redis
 import os
 import logging
-from app.celery.tasks import update_cell_task
 
 logger = logging.getLogger(__name__)
 class RedisClient:
@@ -13,19 +12,6 @@ class RedisClient:
         if not self.redis_client:
             self.redis_client = redis.Redis.from_url(self.redis_url, decode_responses=True)
         return self.redis_client
-    
-    def publish_update_task(self, spreadsheet_id: str, row_index: int, col_index: int, value: str):
-        try:
-            return update_cell_task.delay( # type: ignore
-                spreadsheet_id,
-                row_index,
-                col_index,
-                value
-            )
-        except AttributeError as e:
-            logger.error(f"Failed to publish update task: {e}")
-            return None
-
     
     def cache_sheet_state(self, spreadsheet_id, cell_data):
         client = self.get_redis_client()
@@ -55,11 +41,13 @@ class RedisClient:
         logger.info(f"Retrieved cached state for spreadsheet {spreadsheet_id}")
         return cells
     
-    def update_cached_cell(self, spreadsheet_id, row_index, col_index, value):
+    def update_cached_cell(self, spreadsheet_id, row_index, col_index, value, formula=None):
         client = self.get_redis_client()
-        key = f"spreadsheet:{spreadsheet_id}"
-        cell_key = f"cell:{row_index}:{col_index}"
-        client.hset(key, cell_key, value if value is not None else "")
+        key = f"spreadsheet:{spreadsheet_id}:cell:{row_index}:{col_index}"
+        cell_data = {'value': value if value is not None else ""}
+        if formula is not None:
+            cell_data['formula'] = formula
+        client.hset(key, mapping=cell_data)
         logger.info(f"Updated cached cell ({row_index}, {col_index}) for spreadsheet {spreadsheet_id}")
         return True
     
