@@ -17,6 +17,7 @@ def create_app(test_config=None):
     app.config.from_object('config.DevConfig')
     app.logger.info("Initializing Flask app")
     db.init_app(app)
+    app.sheet_registry = {}
     migrate.init_app(app, db)
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
     socket.init_app(app, message_queue=f"{redis_url}/0")

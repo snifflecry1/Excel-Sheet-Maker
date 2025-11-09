@@ -44,28 +44,33 @@ class DBClient:
             response["error_type"] = ErrorCodes.GENERIC_ERROR
         return response
     
-    def get_spreadsheet_cells(self, id):
+    def get_spreadsheet(self, id):
         response = {"success": False, "error_type": None, "data": None}
         try:
-            spreadsheet = Spreadsheet.from_db(self.session, id)
-            cells = spreadsheet.get_cells()
-            cells_data = [cell.to_dict() for cell in cells]
+            sheet = Spreadsheet.from_db(self.session, id)
+            # cells = spreadsheet.cells
+            # cells_data = [cell.to_dict() for cell in cells]
             response["success"] = True
-            response["data"] = {"spreadsheet_id": spreadsheet.id, "cells": cells_data}
+            response["data"] = {"sheet": sheet}
         except SpreadsheetModel.DoesNotExist:
             logger.exception("Spreadsheet not found")
             response["error_type"] = ErrorCodes.DOES_NOT_EXIST
         except SQLAlchemyError as e:
-            logger.exception(f"Database error retrieving cells: {e}")
+            logger.exception(f"Database error retrieving sheet: {e}")
             response["error_type"] = ErrorCodes.ALCHEMY_ERROR
         return response
     
     def update_cell(self, spreadsheet_id, row_index, col_index, value) -> dict:
         response = {"success": False, "error_type": None}
         try:
-            spreadsheet = Spreadsheet.from_db(self.session, spreadsheet_id)
-            updated = spreadsheet.update_cell_value(row_index, col_index, value)
-            if not updated:
+            cell = (
+                self.session.query(SpreadsheetCell)
+                .filter_by(spreadsheet_id=spreadsheet_id, row_index=row_index, col_index=col_index)
+                .first()
+            )
+            if cell:
+                cell.value = value
+            else:
                 response["error_type"] = ErrorCodes.DOES_NOT_EXIST
                 return response
             self.session.commit()
@@ -82,6 +87,7 @@ class DBClient:
             self.session.rollback()
             response["error_type"] = ErrorCodes.GENERIC_ERROR
         return response
+    
     
     def get_cell(self, spreadsheet_id, row_index, col_index) -> dict:
         response = {"success": False, "error_type": None, "data": None}
