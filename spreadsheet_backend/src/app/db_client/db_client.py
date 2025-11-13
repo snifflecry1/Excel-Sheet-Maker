@@ -60,7 +60,7 @@ class DBClient:
             response["error_type"] = ErrorCodes.ALCHEMY_ERROR
         return response
     
-    def update_cell(self, spreadsheet_id, row_index, col_index, value) -> dict:
+    def update_cell(self, spreadsheet_id, row_index, col_index, value, formula=None) -> dict:
         response = {"success": False, "error_type": None}
         try:
             cell = (
@@ -70,6 +70,7 @@ class DBClient:
             )
             if cell:
                 cell.value = value
+                cell.formula = formula
             else:
                 response["error_type"] = ErrorCodes.DOES_NOT_EXIST
                 return response

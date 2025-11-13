@@ -1,10 +1,13 @@
 import csv
 import io
-from typing import List
+from typing import List, Tuple, Dict
 from dataclasses import dataclass, field
 from app.models import SpreadsheetModel, SpreadsheetCell
-from app import db
 from sqlalchemy.orm import Session
+from app.spreadsheet.helpers import parse_addition_formula, col_to_label, label_to_col
+import logging
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Spreadsheet:
@@ -13,22 +16,36 @@ class Spreadsheet:
     db: Session
     rows: int = 40
     cols: int  = 40
-    cells: List[SpreadsheetCell] = field(default_factory=list)
-    
-    
+    # This should be a dictionary for faster lookup
+    cells: Dict[Tuple[int, int], SpreadsheetCell] = field(default_factory=dict)
+
+
+        # total = 0
+        # for ref in references:
+        #     col_label = ''.join(filter(str.isalpha, ref))
+        #     row_number = ''.join(filter(str.isdigit, ref))
+        #     col_index = label_to_col(col_label)
+        #     row_index = int(row_number) - 1  # Convert to 0-based index
+        #     cell = next((c for c in cls.cells if c.row_index == row_index and c.col_index == col_index), None)
+        #     if cell and cell.value and cell.value.isdigit():
+        #         total += int(cell.value)
+        # return str(total)
+
     @classmethod
     def from_db(cls, db, sheet_id: int) -> "Spreadsheet":
         meta = db.query(SpreadsheetModel).get(sheet_id)
         if not meta:
             raise ValueError(f"Spreadsheet with id {sheet_id} not found")
-        cells = (
+        cell_rows = (
             db.query(SpreadsheetCell)
             .filter_by(spreadsheet_id=sheet_id)
             .order_by(SpreadsheetCell.row_index, SpreadsheetCell.col_index)
             .all()
         )
-        return cls(id=meta.id, name=meta.name, db=db, cells=cells)
+        cell_map = {(c.row_index, c.col_index): c for c in cell_rows}
+        return cls(id=meta.id, name=meta.name, db=db, cells=cell_map)
     
+
     # def get_cells(self, limit: int = 1000) -> List[SpreadsheetCell]:
     #     return (
     #         self.db.query(SpreadsheetCell)
@@ -39,11 +56,11 @@ class Spreadsheet:
     #     )
     
     def update_cell_value(self, row_index: int, col_index: int, value: str, formula: str) -> bool:
-        for cell in self.cells:
-            if cell.row_index == row_index and cell.col_index == col_index:
-                cell.value = value
-                cell.formula = formula
-                return True
+        if (row_index, col_index) in self.cells:
+            cell = self.cells[(row_index, col_index)]
+            cell.value = value
+            cell.formula = formula
+            return True
         return False
         # cell = (
         #     self.db.query(SpreadsheetCell)
@@ -62,20 +79,35 @@ class Spreadsheet:
             return ""
         
         # Find sheet bounds
-        max_row = max(c.row_index for c in self.cells)
-        max_col = max(c.col_index for c in self.cells)
+        max_row = max(c.row_index for c in self.cells.values())
+        max_col = max(c.col_index for c in self.cells.values())
 
         # Build lookup table
         grid = [[ "" for _ in range(max_col + 1)] for _ in range(max_row + 1)]
-        for c in self.cells:
-            grid[c.row_index][c.col_index] = c.value or ""
+        for (r, c), cell in self.cells.items():
+            grid[r][c] = cell.value if cell.value is not None else ""
 
         # Write to CSV
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerows(grid)
         return output.getvalue()
-        
     
+    def evaluate_formula(self, formula: str) -> str:
+        references = parse_addition_formula(formula)
+        total = 0
+        if not references:
+            return "0"
+        for ref in references:
+            col_label = ''.join(filter(str.isalpha, ref))
+            row_number = ''.join(filter(str.isdigit, ref))
+            col_index = label_to_col(col_label)
+            row_index = int(row_number) - 1  # Convert to 0-based index
+            # this is actually finding cells at col, row there is a bug
+            cell = self.cells.get((row_index, col_index))
+            # logger.info(f"Evaluating cell at ({row_index}, {col_index}): {cell} type cell.value={type(cell.value)}") 
+            if cell and cell.value and cell.value.isdigit():
+                total += int(cell.value)
 
-        
+        return "" + str(total)
+    

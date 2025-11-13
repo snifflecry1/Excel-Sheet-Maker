@@ -18,7 +18,7 @@ def update_cell_task(spreadsheet_id, row_index, col_index, value, formula=None, 
     session = Session()
     db_client = DBClient(session)
     try:
-        response = db_client.update_cell(spreadsheet_id, row_index, col_index, value)
+        response = db_client.update_cell(spreadsheet_id, row_index, col_index, value, formula)
         if response['success']:
             logger.info(f"Updated cell ({row_index}, {col_index}) for spreadsheet {spreadsheet_id} in DB")
         else:

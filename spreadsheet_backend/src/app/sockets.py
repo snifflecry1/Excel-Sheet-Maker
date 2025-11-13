@@ -38,22 +38,22 @@ def updates(data):
             sheet = db.get_spreadsheet(spreadsheet_id)["data"]["sheet"]
             registry[spreadsheet_id] = sheet
             logger.info(f"📘 Loaded sheet {spreadsheet_id} into memory")
-        updated = sheet.update_cell_value(row, col, value, formula)
-
-            # for cell in cells:
-            #     if cell['row_index'] == update.get('row') and cell['col_index'] == update.get('col'):
-            #         cell['value'] = update.get('value')
-            #         break
-            # current_app.sheet_registry[spreadsheet_id] = (name, cells)
-            # logger.info(f"Updated in-memory cache for spreadsheet {spreadsheet_id}")
+        # If theres a formula, we need to parse and update in memory then make a task to persist in db
+        if formula:
+            formula_value = sheet.evaluate_formula(formula)
+            updated = sheet.update_cell_value(row, col, formula_value, formula)
+            value = formula_value
+        else:
+            updated = sheet.update_cell_value(row, col, value, formula)
+        
         try:
             # UPDATE THIS TASK METHOD 
             update_cell_task.delay( # type: ignore
                 spreadsheet_id,
-                update.get('row'),
-                update.get('col'), 
-                update.get('value'),
-                update.get('formula'),
+                row,
+                col, 
+                value,
+                formula,
                 # update.get('references')
             )
         except AttributeError as e:
