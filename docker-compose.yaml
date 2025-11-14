@@ -21,6 +21,7 @@ services:
       - "5000:5000"
     volumes:
       - ./spreadsheet_backend:/app
+      - shared_exports:/exports
     environment:
       - FLASK_APP=src.main.py
       - FLASK_ENV=development
@@ -61,13 +62,13 @@ services:
     networks:
       - app_network
   celery_worker:
-    user: "1000:1000"
     build:
       context: ./spreadsheet_backend
     command: >
       celery -A app.celery.celery.celery_app worker --loglevel=info
     volumes:
       - ./spreadsheet_backend:/app
+      - shared_exports:/exports
     environment:
       - FLASK_APP=src/main.py
       - FLASK_ENV=development
@@ -84,6 +85,7 @@ services:
       - app_network
 volumes:
   db_data:
+  shared_exports:
 
 networks:
   app_network:

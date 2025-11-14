@@ -17,6 +17,5 @@ RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 COPY . .
-USER appuser
 
 CMD ["python", "src.main.py"]

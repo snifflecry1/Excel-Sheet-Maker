@@ -2,20 +2,19 @@ import re
 
 # Helper functions for spreadsheet operations
 
-def parse_addition_formula(formula: str) -> list[str]:
+
+
+def parse_formula(formula: str) -> list[str]:
     """
     Parse an Excel-style addition formula (e.g., '=A1+B2+C3') into a list of cell references.
     Returns ['A1', 'B2', 'C3'].
     """
-    # Strip spaces and leading '='
     formula = formula.strip()
     if formula.startswith('='):
         formula = formula[1:]
 
-    # Regex to match valid cell references like A1, AA12, Z99 etc.
-    pattern = r'([A-Z]+[0-9]+)'
+    pattern = r'([A-Z]+[0-9]+|[+-])'
 
-    # Find all matches
     matches = re.findall(pattern, formula.upper())
     return matches
 

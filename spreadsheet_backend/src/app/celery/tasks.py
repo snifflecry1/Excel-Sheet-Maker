@@ -30,6 +30,28 @@ def update_cell_task(spreadsheet_id, row_index, col_index, value, formula=None, 
         session.close()
     return True
 
+@celery_app.task
+def export_spreadsheet_task(spreadsheet_id):
+    session = Session()
+    db_client = DBClient(session)
+    try:
+        spreadsheet = db_client.get_spreadsheet(spreadsheet_id)
+        if not spreadsheet['success']:
+            logger.error(f"Failed to retrieve spreadsheet {spreadsheet_id} for export: {spreadsheet['error_type']}")
+            return None
+        sheet = spreadsheet['data']['sheet']
+        csv_output = sheet.export_to_csv()
+        csv_path = f"/exports/spreadsheet_{spreadsheet_id}.csv"
+        with open(csv_path, "w", newline='') as csvfile:
+            csvfile.write(csv_output)
+        logger.info(f"Exported spreadsheet {spreadsheet_id} to {csv_path}")
+        return csv_path
+    except Exception as e:
+        logger.exception(f"Error in export_spreadsheet_task: {e}")
+        return None
+    finally:
+        session.close()
+
 
 # def validate_formula_helper(spreadsheet_id ,references, client_value, session) -> tuple[float, bool]:
 #     db_client = DBClient(session)

@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict
 from dataclasses import dataclass, field
 from app.models import SpreadsheetModel, SpreadsheetCell
 from sqlalchemy.orm import Session
-from app.spreadsheet.helpers import parse_addition_formula, col_to_label, label_to_col
+from app.spreadsheet.helpers import parse_formula, col_to_label, label_to_col
 import logging
 
 logger = logging.getLogger(__name__)
@@ -94,20 +94,35 @@ class Spreadsheet:
         return output.getvalue()
     
     def evaluate_formula(self, formula: str) -> str:
-        references = parse_addition_formula(formula)
+        tokens = parse_formula(formula)
         total = 0
-        if not references:
+        if not tokens:
             return "0"
-        for ref in references:
+        
+        def get_cell_value(ref: str) -> str:
             col_label = ''.join(filter(str.isalpha, ref))
             row_number = ''.join(filter(str.isdigit, ref))
             col_index = label_to_col(col_label)
             row_index = int(row_number) - 1  # Convert to 0-based index
-            # this is actually finding cells at col, row there is a bug
             cell = self.cells.get((row_index, col_index))
-            # logger.info(f"Evaluating cell at ({row_index}, {col_index}): {cell} type cell.value={type(cell.value)}") 
-            if cell and cell.value and cell.value.isdigit():
-                total += int(cell.value)
+            return cell.value if (cell and cell.value and cell.value.isdigit()) else '0'
 
-        return "" + str(total)
+        total += int(get_cell_value(tokens[0]))
+        i = 1
+        while i < len(tokens):
+            operator = tokens[i]
+            operand = tokens[i + 1]
+            logger.info(f"Processing token: {operator} {operand}")
+            cell_value_str = get_cell_value(operand)
+            cell_value = int(cell_value_str) if cell_value_str else 0
+            logger.info(f"Evaluating: {operator} {operand} (value: {cell_value})")
+            if operator == '+':
+                total += cell_value
+                logger.info(f"Total after addition: {total}")
+            elif operator == '-':
+                total -= cell_value
+                logger.info(f"Total after subtraction: {total}")
+            i += 2
+        return str(total)
+        
     

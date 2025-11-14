@@ -1,6 +1,7 @@
 from app.spreadsheet.sheet import Spreadsheet
 from flask import current_app
 from flask import Blueprint, request, jsonify, current_app
+from app.celery.tasks import export_spreadsheet_task
 import logging
 from mappings import ErrorCodes
 
@@ -44,12 +45,8 @@ def export_spreadsheet_csv(id):
     if id <= 0:
         return jsonify({"error": "Invalid spreadsheet ID"}), 400
     try:
-        spreadsheet = Spreadsheet.from_db(current_app.db_client.session, id)
-        csv_path = f"/tmp/spreadsheet_{id}.csv"
-        output  = spreadsheet.export_to_csv()  # Uncomment when implemented
-        with open(csv_path, "w", newline='') as csvfile:
-            csvfile.write(output)
-        return jsonify({"message": f"Spreadsheet exported to {csv_path}"}), 200
+        result = export_spreadsheet_task.delay(id) # type: ignore
+        return jsonify({"message": "Export task initiated", "task id": result.id}), 202
     except ValueError as ve:
         logger.error(f"Export error: {ve}")
         return jsonify({"error": str(ve)}), 404
