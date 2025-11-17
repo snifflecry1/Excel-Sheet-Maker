@@ -30,6 +30,12 @@ class DBClient:
                     )
             self.session.commit()
             response["success"] = True
+            response["spreadsheet"] = {
+                "id": sheet_model.id,
+                "name": sheet_model.name,
+                "rows": spreadsheet.rows,
+                "cols": spreadsheet.cols,
+            }
         except IntegrityError:
             logger.exception("Integrity error creating spreadsheet")
             db.session.rollback()
@@ -42,6 +48,18 @@ class DBClient:
             logger.exception("Unexpected error creating spreadsheet")
             db.session.rollback()
             response["error_type"] = ErrorCodes.GENERIC_ERROR
+        return response
+    
+    def list_spreadsheets(self) -> dict:
+        response = {"success": False, "error_type": None, "data": None}
+        try:
+            sheets = self.session.query(SpreadsheetModel).all()
+            sheets_data = [{"id": sheet.id, "name": sheet.name} for sheet in sheets]
+            response["success"] = True
+            response["data"] = {"spreadsheets": sheets_data}
+        except SQLAlchemyError as e:
+            logger.exception(f"Database error listing spreadsheets: {e}")
+            response["error_type"] = ErrorCodes.ALCHEMY_ERROR
         return response
     
     def get_spreadsheet(self, id):

@@ -43,6 +43,19 @@ def updates(data):
             formula_value = sheet.evaluate_formula(formula)
             updated = sheet.update_cell_value(row, col, formula_value, formula)
             value = formula_value
+            emit(
+                "cell_update",
+                {
+                    "update" : {
+                        "spreadsheet_id": spreadsheet_id,
+                        "row": row,
+                        "col": col,
+                        "value": value,
+                        "formula": formula,
+                    }
+                },
+                broadcast=True, 
+            )
         else:
             updated = sheet.update_cell_value(row, col, value, formula)
         

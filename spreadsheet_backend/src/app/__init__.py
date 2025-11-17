@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from flask_socketio import SocketIO
 from app.extensions import db, migrate
 from app.views import main_bp
@@ -10,10 +11,11 @@ from app.redis_client.red_client import RedisClient
 
 logging.basicConfig(level=logging.DEBUG)
 
-socket = SocketIO(cors_allowed_origins="*")
+socket = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
+    CORS(app)
     app.config.from_object('config.DevConfig')
     app.logger.info("Initializing Flask app")
     db.init_app(app)

@@ -12,6 +12,8 @@ services:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
+    networks:
+      - app_network
   spreadsheet_backend:
     build:
       context: ./spreadsheet_backend

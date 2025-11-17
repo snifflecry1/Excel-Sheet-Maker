@@ -21,9 +21,23 @@ def create_spreadsheet():
         return jsonify({"error": "Spreadsheet name must not exceed 255 characters"}), 400
     result = current_app.db_client.create_spreadsheet(name)
     if result["success"]:
-        return jsonify({"message": "Spreadsheet created successfully"}), 201
+        return jsonify({"message": "Spreadsheet created successfully", "data": result}), 201
     else:
         return jsonify({"message": f"Failed to create spreadsheet"}, result.get("error_type", 500))
+
+@main_bp.route("/spreadsheets", methods=["GET"])
+def list_spreadsheets():
+    result = current_app.db_client.list_spreadsheets()
+    if result["success"]:
+        # testing log
+        logger.info(f"Retrieved {len(result['data']['spreadsheets'])} spreadsheets")
+        spreadsheets = result["data"]["spreadsheets"]
+        logger.info(f"Spreadsheets: {spreadsheets}")
+        return jsonify({"spreadsheets": spreadsheets}), 200
+    else:
+        return jsonify({"message": f"Failed to retrieve spreadsheets"}, result.get("error_type", 500))
+    
+
 
 @main_bp.route("/spreadsheets/<int:id>", methods=["GET"])
 def get_spreadsheet(id):
@@ -31,14 +45,30 @@ def get_spreadsheet(id):
         return jsonify({"error": "Invalid spreadsheet ID"}), 400
     if id in current_app.sheet_registry:
         cached_sheet = current_app.sheet_registry[id]
-        return jsonify({"spreadsheet_id": id, "sheet": cached_sheet}), 200
-    result = current_app.db_client.get_spreadsheet(id)
-    if result["success"]:
-        sheet = result["data"]["sheet"]
-        current_app.sheet_registry[id] = (sheet)
-        return jsonify({"message": "Retrieved sheet data" , "spreadsheet_id": sheet.id, "name": sheet.name, "sheet": sheet}), 200
+        # return jsonify({"spreadsheet_id": id, "sheet": cached_sheet}), 200
     else:
-        return jsonify({"message": f"Failed to retrieve cells"}, result.get("error_type", 500))
+        result = current_app.db_client.get_spreadsheet(id)
+        if result["success"]:
+            cached_sheet = result["data"]["sheet"]
+            current_app.sheet_registry[id] = (cached_sheet)
+        else:
+            return jsonify({"message": f"Failed to retrieve cells"}, result.get("error_type", 500))
+    sheet_data = {
+        "id": cached_sheet.id,
+        "name": cached_sheet.name,
+        "rows": cached_sheet.rows,
+        "cols": cached_sheet.cols,
+        "cells": [
+            {
+                "row_index": r,
+                "col_index": c,
+                "value": cell.value,
+                "formula": cell.formula,
+            }
+            for (r, c), cell in cached_sheet.cells.items()
+        ],
+    }
+    return jsonify({"message": "Retrieved sheet data" , "spreadsheet_id": id, "sheet": sheet_data}), 200
 
 @main_bp.route("/spreadsheets/export_csv/<int:id>", methods=["GET"])
 def export_spreadsheet_csv(id):
