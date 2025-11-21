@@ -1,6 +1,8 @@
-from typing import List, Optional
-from app.extensions import db
 from datetime import datetime, timezone
+from typing import List, Optional
+
+from app.extensions import db
+
 
 class SpreadsheetModel(db.Model):
     __tablename__ = "spreadsheets"
@@ -9,19 +11,20 @@ class SpreadsheetModel(db.Model):
     name = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
 
-    cells = db.relationship("SpreadsheetCell", back_populates="spreadsheet", cascade="all, delete-orphan")
+    cells = db.relationship(
+        "SpreadsheetCell", back_populates="spreadsheet", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Spreadsheet id={self.id} name={self.name}>"
+
 
 class SpreadsheetCell(db.Model):
     __tablename__ = "cells"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     spreadsheet_id = db.Column(
-        db.Integer,
-        db.ForeignKey("spreadsheets.id", ondelete="CASCADE"),
-        nullable=False
+        db.Integer, db.ForeignKey("spreadsheets.id", ondelete="CASCADE"), nullable=False
     )
     row_index = db.Column(db.Integer, primary_key=True)
     col_index = db.Column(db.Integer, primary_key=True)
@@ -31,7 +34,7 @@ class SpreadsheetCell(db.Model):
 
     def __repr__(self):
         return f"<Cell spreadsheet_id={self.id} row={self.row_index} col={self.col_index} value={self.value}>"
-    
+
     def to_dict(self) -> dict:
         return {
             "row_index": self.row_index,
