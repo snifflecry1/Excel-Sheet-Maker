@@ -1,32 +1,27 @@
 import json
+from flask_socketio import emit
+from app import socket
+from flask import current_app
+from app.spreadsheet.sheet import Spreadsheet
+from app.celery.tasks import update_cell_task
 import logging
 
-from app import socket
-from app.celery.tasks import update_cell_task
-from app.spreadsheet.sheet import Spreadsheet
-from flask import current_app
-from flask_socketio import emit
-
 logger = logging.getLogger(__name__)
-redis_client = None
-
 
 @socket.on("connect")
 def handle_connect():
     logger.info("Client connected")
     emit("connection_ack", {"message": "Connected to spreadsheet backend"})
 
-
 @socket.on("disconnect")
 def handle_disconnect():
     logger.info("Client disconnected")
 
-
 @socket.on("sheet_updates")
 def updates(data):
     try:
-        spreadsheet_id = data.get("spreadsheet_id")
-        update = data.get("update")
+        spreadsheet_id = data.get('spreadsheet_id')
+        update = data.get('update')
         if not spreadsheet_id or not update:
             emit("error", {"error": "Invalid payload"})
             return
@@ -50,7 +45,7 @@ def updates(data):
             emit(
                 "cell_update",
                 {
-                    "update": {
+                    "update" : {
                         "spreadsheet_id": spreadsheet_id,
                         "row": row,
                         "col": col,
@@ -58,29 +53,24 @@ def updates(data):
                         "formula": formula,
                     }
                 },
-                broadcast=True,
+                broadcast=True, 
             )
         else:
             updated = sheet.update_cell_value(row, col, value, formula)
-
+        
         try:
-            # UPDATE THIS TASK METHOD
-            update_cell_task.delay(  # type: ignore
+            update_cell_task.delay( # type: ignore
                 spreadsheet_id,
                 row,
-                col,
+                col, 
                 value,
                 formula,
-                # update.get('references')
             )
         except AttributeError as e:
             logger.error(f"Failed to publish update task: {e}")
             return None
         logger.info(f"Added db update task for spreadsheet {spreadsheet_id}")
-        emit(
-            "update_ack",
-            {"status": "Update added to task queue", "spreadsheet_id": spreadsheet_id},
-        )
+        emit("update_ack", {"status": "Update added to task queue", "spreadsheet_id": spreadsheet_id})
         logger.info(f"Published both updates to Redis")
     except Exception as e:
         logger.exception(f"Error handling cell_update: {e}")

@@ -1,3 +1,4 @@
+
 class ErrorCodes:
     INTEGRITY_ERROR = 409
     ALCHEMY_ERROR = 500

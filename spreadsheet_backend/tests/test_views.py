@@ -2,11 +2,12 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
+
 from app import create_app
 from app.spreadsheet.sheet import Spreadsheet
 
-# ---------- Fixtures ----------
 
+# ---------- Fixtures ----------
 
 @pytest.fixture
 def app():
@@ -38,7 +39,6 @@ def mock_db_client(app):
 
 # ---------- Helper ----------
 
-
 def _make_fake_sheet():
     """
     Minimal fake Spreadsheet compatible with your view logic.
@@ -63,7 +63,6 @@ def _make_fake_sheet():
 
 
 # ---------- Tests: POST /spreadsheets ----------
-
 
 def test_create_spreadsheet_success(client, mock_db_client):
     mock_db_client.create_spreadsheet.return_value = {
@@ -120,7 +119,6 @@ def test_create_spreadsheet_invalid_payload(client, mock_db_client):
 
 # ---------- Tests: GET /spreadsheets ----------
 
-
 def test_list_spreadsheets_success(client, mock_db_client):
     mock_db_client.list_spreadsheets.return_value = {
         "success": True,
@@ -142,8 +140,8 @@ def test_list_spreadsheets_success(client, mock_db_client):
     mock_db_client.list_spreadsheets.assert_called_once()
 
 
-# ---------- Tests: GET /spreadsheets/<id> ----------
 
+# ---------- Tests: GET /spreadsheets/<id> ----------
 
 def test_get_spreadsheet_success_from_db(client, mock_db_client):
     fake_sheet = _make_fake_sheet()
@@ -169,7 +167,8 @@ def test_get_spreadsheet_success_from_db(client, mock_db_client):
     assert len(sheet_data["cells"]) == len(fake_sheet.cells)
 
     a1 = next(
-        c for c in sheet_data["cells"] if c["row_index"] == 0 and c["col_index"] == 0
+        c for c in sheet_data["cells"]
+        if c["row_index"] == 0 and c["col_index"] == 0
     )
     assert a1["value"] == "A1"
 

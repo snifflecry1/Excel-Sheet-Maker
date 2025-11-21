@@ -1,10 +1,9 @@
-import logging
-
 from app import db
-from app.models import SpreadsheetCell, SpreadsheetModel
-from app.spreadsheet.sheet import Spreadsheet
-from mappings import ErrorCodes
+from app.models import SpreadsheetModel, SpreadsheetCell
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from app.spreadsheet.sheet import Spreadsheet
+import logging
+from mappings import ErrorCodes
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,6 @@ logger = logging.getLogger(__name__)
 class DBClient:
     def __init__(self, session):
         self.session = session
-
     def create_spreadsheet(self, name) -> dict:
         response = {"success": False, "error_type": None}
         try:
@@ -51,7 +49,7 @@ class DBClient:
             db.session.rollback()
             response["error_type"] = ErrorCodes.GENERIC_ERROR
         return response
-
+    
     def list_spreadsheets(self) -> dict:
         response = {"success": False, "error_type": None, "data": None}
         try:
@@ -63,7 +61,7 @@ class DBClient:
             logger.exception(f"Database error listing spreadsheets: {e}")
             response["error_type"] = ErrorCodes.ALCHEMY_ERROR
         return response
-
+    
     def get_spreadsheet(self, id):
         response = {"success": False, "error_type": None, "data": None}
         try:
@@ -77,19 +75,13 @@ class DBClient:
             logger.exception(f"Database error retrieving sheet: {e}")
             response["error_type"] = ErrorCodes.ALCHEMY_ERROR
         return response
-
-    def update_cell(
-        self, spreadsheet_id, row_index, col_index, value, formula=None
-    ) -> dict:
+    
+    def update_cell(self, spreadsheet_id, row_index, col_index, value, formula=None) -> dict:
         response = {"success": False, "error_type": None}
         try:
             cell = (
                 self.session.query(SpreadsheetCell)
-                .filter_by(
-                    spreadsheet_id=spreadsheet_id,
-                    row_index=row_index,
-                    col_index=col_index,
-                )
+                .filter_by(spreadsheet_id=spreadsheet_id, row_index=row_index, col_index=col_index)
                 .first()
             )
             if cell:
@@ -112,17 +104,14 @@ class DBClient:
             self.session.rollback()
             response["error_type"] = ErrorCodes.GENERIC_ERROR
         return response
-
+    
+    
     def get_cell(self, spreadsheet_id, row_index, col_index) -> dict:
         response = {"success": False, "error_type": None, "data": None}
         try:
             cell_data = (
                 self.session.query(SpreadsheetCell)
-                .filter_by(
-                    spreadsheet_id=spreadsheet_id,
-                    row_index=row_index,
-                    col_index=col_index,
-                )
+                .filter_by(spreadsheet_id=spreadsheet_id, row_index=row_index, col_index=col_index)
                 .first()
             )
             if cell_data is None:
