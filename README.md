@@ -160,3 +160,28 @@ Your `docker-compose.yml` should define all services (backend, celery, redis, fr
 - Handle errors and invalid inputs gracefully.
 
 - Write at least one small test (backend or frontend).
+
+
+
+
+
+
+# Notes
+
+- To run the app just run 
+
+```bash
+
+docker-compose  up  --build
+
+```
+
+- To run the small tests for some of the views in the app run
+
+```bash
+docker compose run --rm spreadsheet_tests
+```
+
+All documentation on how the design was implemented is in DESIGN.md at root
+
+

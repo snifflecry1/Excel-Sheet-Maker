@@ -1,12 +1,14 @@
 from app.spreadsheet.sheet import Spreadsheet
-from flask import current_app
+from flask import current_app, send_file
 from flask import Blueprint, request, jsonify, current_app
 from app.celery.tasks import export_spreadsheet_task
 import logging
+import os
 from mappings import ErrorCodes
 
 logger = logging.getLogger(__name__)
 main_bp = Blueprint("main", __name__)
+
 
 
 @main_bp.route("/spreadsheets", methods=["POST"])
@@ -25,17 +27,6 @@ def create_spreadsheet():
     else:
         return jsonify({"message": f"Failed to create spreadsheet"}, result.get("error_type", 500))
 
-@main_bp.route("/spreadsheets", methods=["GET"])
-def list_spreadsheets():
-    result = current_app.db_client.list_spreadsheets()
-    if result["success"]:
-        # testing log
-        logger.info(f"Retrieved {len(result['data']['spreadsheets'])} spreadsheets")
-        spreadsheets = result["data"]["spreadsheets"]
-        logger.info(f"Spreadsheets: {spreadsheets}")
-        return jsonify({"spreadsheets": spreadsheets}), 200
-    else:
-        return jsonify({"message": f"Failed to retrieve spreadsheets"}, result.get("error_type", 500))
     
 
 
@@ -72,14 +63,62 @@ def get_spreadsheet(id):
 
 @main_bp.route("/spreadsheets/export_csv/<int:id>", methods=["GET"])
 def export_spreadsheet_csv(id):
+    path = f"/exports/spreadsheet_{id}.csv"
     if id <= 0:
         return jsonify({"error": "Invalid spreadsheet ID"}), 400
     try:
-        result = export_spreadsheet_task.delay(id) # type: ignore
-        return jsonify({"message": "Export task initiated", "task id": result.id}), 202
+        export_spreadsheet_task.delay(id) # type: ignore
+        return send_file(path, mimetype="text/csv", as_attachment=True, download_name=f"spreadsheet_{id}.csv")
     except ValueError as ve:
         logger.error(f"Export error: {ve}")
         return jsonify({"error": str(ve)}), 404
     except Exception as e:
         logger.exception(f"Unexpected error during export: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@main_bp.route("/spreadsheets/export_csv/<int:id>/start", methods=["POST"])
+def start_export_spreadsheet(id):
+    if id <= 0:
+        return jsonify({"error": "Invalid spreadsheet ID"}), 400
+
+    async_result = export_spreadsheet_task.delay(id)  # type: ignore
+
+    return jsonify({
+        "job_id": async_result.id,
+        "spreadsheet_id": id
+    }), 202
+
+@main_bp.route("/spreadsheets/export_csv/<int:id>/status", methods=["GET"])
+def export_spreadsheet_status(id):
+    if id <= 0:
+        return jsonify({"error": "Invalid spreadsheet ID"}), 400
+
+    csv_path = f"/exports/spreadsheet_{id}.csv"
+    exists = os.path.exists(csv_path)
+    current_app.logger.info(f"[STATUS] Check {csv_path}, exists={exists}")
+    if os.path.exists(csv_path):
+        return jsonify({"ready": True}), 200
+
+    return jsonify({"ready": False}), 202
+
+@main_bp.route("/spreadsheets/export_csv/<int:id>/download", methods=["GET"])
+def download_spreadsheet_csv(id):
+    if id <= 0:
+        return jsonify({"error": "Invalid spreadsheet ID"}), 400
+
+    csv_path = f"/exports/spreadsheet_{id}.csv"
+    exists = os.path.exists(csv_path)
+    current_app.logger.info(f"[DOWNLOAD] {csv_path} exists={exists}")
+    if not os.path.exists(csv_path):
+        return jsonify({"error": "Export not ready"}), 404
+
+    try:
+        return send_file(
+            csv_path,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"spreadsheet_{id}.csv",
+        )
+    except Exception as e:
+        logger.exception(f"Error sending CSV for spreadsheet {id}: {e}")
         return jsonify({"error": "Internal server error"}), 500

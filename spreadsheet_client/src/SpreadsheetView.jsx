@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSpreadsheetSocket } from "./useSpreadsheetSocket";
-import { fetchSpreadsheetCells, exportSpreadsheet } from "./api";
+import { fetchSpreadsheetCells, startExportSpreadsheet, checkExportStatus, downloadSpreadsheetCsv} from "./api";
 
 export default function SpreadsheetView({ spreadsheet }) {
   const [cells, setCells] = useState([]);
@@ -101,10 +101,43 @@ export default function SpreadsheetView({ spreadsheet }) {
     setValue(cell?.value || "");
   };
 
-  // ✅ Export CSV
   const handleExport = async () => {
-    const res = await exportSpreadsheet(spreadsheet.id);
-    alert(res.message);
+    if (!spreadsheet?.id) return;
+
+    try {
+      await startExportSpreadsheet(spreadsheet.id);
+
+      let ready = false;
+      const maxAttempts = 40;
+      const intervalMs = 500;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const status = await checkExportStatus(spreadsheet.id);
+        if (status.ready) {
+          ready = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+
+      if (!ready) {
+        alert("Export is taking too long. Please try again later.");
+        return;
+      }
+
+      const blob = await downloadSpreadsheetCsv(spreadsheet.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spreadsheet_${spreadsheet.id}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error exporting spreadsheet:", err);
+      alert("Failed to export spreadsheet");
+    }
   };
 
   // ✅ Dynamically calculate grid size

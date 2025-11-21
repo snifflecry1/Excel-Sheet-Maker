@@ -85,6 +85,28 @@ services:
         condition: service_healthy
     networks:
       - app_network
+  spreadsheet_tests:
+    build:
+      context: ./spreadsheet_backend
+    command: >
+      bash -c "pytest -q"
+    volumes:
+      - ./spreadsheet_backend:/app
+      - shared_exports:/exports
+    environment:
+      - FLASK_APP=src/main.py
+      - FLASK_ENV=development
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - EVENTLET_NO_GREENDNS=yes
+      - DATABASE_URL=postgresql://test:test@db:5432/test
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app_network
 volumes:
   db_data:
   shared_exports:

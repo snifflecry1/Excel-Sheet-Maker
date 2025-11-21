@@ -66,8 +66,6 @@ class DBClient:
         response = {"success": False, "error_type": None, "data": None}
         try:
             sheet = Spreadsheet.from_db(self.session, id)
-            # cells = spreadsheet.cells
-            # cells_data = [cell.to_dict() for cell in cells]
             response["success"] = True
             response["data"] = {"sheet": sheet}
         except SpreadsheetModel.DoesNotExist:

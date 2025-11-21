@@ -7,3 +7,4 @@ redis==5.0.1
 Flask-SocketIO==5.3.6
 eventlet==0.33.3
 flask_cors==3.0.10
+pytest==9.0.1

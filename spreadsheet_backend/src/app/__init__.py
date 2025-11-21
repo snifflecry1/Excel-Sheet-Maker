@@ -6,7 +6,6 @@ from app.views import main_bp
 import logging
 import os
 from app.db_client.db_client import DBClient
-from app.redis_client.red_client import RedisClient
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -24,7 +23,6 @@ def create_app(test_config=None):
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
     socket.init_app(app, message_queue=f"{redis_url}/0")
     app.db_client = DBClient(db.session)
-    app.redis_client = RedisClient()
     app.register_blueprint(main_bp)
     from app import sockets 
     app.logger.info("App created successfully.")
