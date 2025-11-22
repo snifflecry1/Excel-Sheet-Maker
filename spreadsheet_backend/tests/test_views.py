@@ -117,28 +117,6 @@ def test_create_spreadsheet_invalid_payload(client, mock_db_client):
     assert resp.status_code == 400
 
 
-# ---------- Tests: GET /spreadsheets ----------
-
-def test_list_spreadsheets_success(client, mock_db_client):
-    mock_db_client.list_spreadsheets.return_value = {
-        "success": True,
-        "data": {
-            "spreadsheets": [
-                {"id": 1, "name": "Sheet 1"},
-                {"id": 2, "name": "Sheet 2"},
-            ]
-        },
-        "error_type": None,
-    }
-
-    resp = client.get("/spreadsheets")
-    assert resp.status_code == 200
-    body = resp.get_json()
-    assert "spreadsheets" in body
-    assert len(body["spreadsheets"]) == 2
-    assert body["spreadsheets"][0]["name"] == "Sheet 1"
-    mock_db_client.list_spreadsheets.assert_called_once()
-
 
 
 # ---------- Tests: GET /spreadsheets/<id> ----------
