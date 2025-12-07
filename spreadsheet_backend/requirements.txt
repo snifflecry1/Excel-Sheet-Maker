@@ -1,0 +1,10 @@
+Flask==3.1.2
+celery[redis]==5.5.3
+Flask-SQLAlchemy==3.0.5
+psycopg2-binary==2.9.11
+flask_migrate==4.0.1
+redis==5.0.1
+Flask-SocketIO==5.3.6
+eventlet==0.33.3
+flask_cors==3.0.10
+pytest==9.0.1

@@ -1,0 +1,6 @@
+
+class ErrorCodes:
+    INTEGRITY_ERROR = 409
+    ALCHEMY_ERROR = 500
+    GENERIC_ERROR = 500
+    DOES_NOT_EXIST = 404

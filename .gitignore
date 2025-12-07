@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Migration caches
+**/migrations/__pycache__/
+**/migrations/versions/__pycache__/
+
+# Test files
+test.py
+
+* Frontend
+.vite
+
+# IDE
+.vscode/
+.idea/

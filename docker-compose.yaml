@@ -1,0 +1,116 @@
+services:
+  spreadsheet_client:
+    build: 
+      context: ./spreadsheet_client
+      target: dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./spreadsheet_client:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    networks:
+      - app_network
+  spreadsheet_backend:
+    build:
+      context: ./spreadsheet_backend
+    command: >
+      bash -c "./migration_setup.sh && python src/main.py"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./spreadsheet_backend:/app
+      - shared_exports:/exports
+    environment:
+      - FLASK_APP=src.main.py
+      - FLASK_ENV=development
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - EVENTLET_NO_GREENDNS=yes
+      - DATABASE_URL=postgresql://test:test@db:5432/test
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app_network
+  db:
+    image: postgres:17.4-bookworm
+    volumes:
+      - type: volume
+        source: db_data
+        target: /var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:7.0.12-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app_network
+  celery_worker:
+    build:
+      context: ./spreadsheet_backend
+    command: >
+      celery -A app.celery.celery.celery_app worker --loglevel=info
+    volumes:
+      - ./spreadsheet_backend:/app
+      - shared_exports:/exports
+    environment:
+      - FLASK_APP=src/main.py
+      - FLASK_ENV=development
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - EVENTLET_NO_GREENDNS=yes
+      - DATABASE_URL=postgresql://test:test@db:5432/test
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+  spreadsheet_tests:
+    build:
+      context: ./spreadsheet_backend
+    command: >
+      bash -c "pytest -q"
+    volumes:
+      - ./spreadsheet_backend:/app
+      - shared_exports:/exports
+    environment:
+      - FLASK_APP=src/main.py
+      - FLASK_ENV=development
+      - PYTHONPATH=/app/src
+      - REDIS_URL=redis://redis:6379
+      - EVENTLET_NO_GREENDNS=yes
+      - DATABASE_URL=postgresql://test:test@db:5432/test
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app_network
+volumes:
+  db_data:
+  shared_exports:
+
+networks:
+  app_network:
+    driver: bridge
